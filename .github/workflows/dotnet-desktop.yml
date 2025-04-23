@@ -45,38 +45,50 @@ jobs:
       run: dotnet build --configuration Release
 
     - name: Publish
-      run: dotnet publish --configuration Release --output ./publish
+      run: dotnet publish -c Release -r win-x64 --self-contained true --output ./publish/windows
+      
+    - name: Build MacOs
+      run: dotnet publish -c Release -r osx-x64 --self-contained true -o ./publish/macos
 
-    - name: Upload Artifacts
+    - name: Upload Windows Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: ${{ runner.os }}-app
-        path: ./publish/**/*
+        name: win-x64
+        path: ./publish/windows
+
+    - name: Upload macOS Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: osx-x64
+        path: ./publish/macos
 
   release:
       needs: build
       runs-on: ubuntu-latest
+      
       steps:
-      - name: Download Artifacts
-        uses: actions/download-artifact@v4
+        - name: Download Windows Artifact
+          uses: actions/download-artifact@v4
+          with:
+            name: win-x64
+            path: ./win-x64
+            
+        - name: Download macOS Artifact
+          uses: actions/download-artifact@v4
+          with:
+            name: osx-x64
+            path: ./osx-x64
   
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref_name }}
-          release_name: Release ${{ github.ref_name }}
-          draft: false
-          prerelease: false
+        - name: Zip artifacts
+          run: |
+            zip -r win-x64.zip ./win-x64
+            zip -r macos-x64.zip ./osx-x64
   
-      - name: Upload Release Asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./publish/AutoTf.YubiKeyInteractor.zip
-          asset_name: AutoTf.YubiKeyInteractor-${{ runner.os }}.zip
-          asset_content_type: application/zip
+        - name: Create GitHub Release
+          uses: softprops/action-gh-release@v2
+          with:
+            files: |
+              win-x64.zip
+              macos-x64.zip
+          env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
