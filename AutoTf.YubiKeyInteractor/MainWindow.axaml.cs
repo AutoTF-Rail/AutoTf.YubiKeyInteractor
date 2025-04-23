@@ -5,6 +5,8 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Runtime.InteropServices;
+using System.Text;
+using System.Text.Json;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Yubico.YubiKey;
@@ -63,12 +65,13 @@ public partial class MainWindow : Window
 		
 		using (HttpClient client = new HttpClient())
 		{
-			string requestUrl = $"https://{evuDomainText.Text}.server.autotf.de/sync/keys/addkey/?serialNumber={device.SerialNumber}&secret={secret}";
+			AddKeyBody body = new AddKeyBody(device.SerialNumber.ToString()!, secret);
+			string requestUrl = $"https://{evuDomainText.Text}.server.autotf.de/sync/keys/add";
 
-			HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, requestUrl);
+			HttpContent content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json");
 
-			request.Headers.Add("Cookie", $"authentik_csrf={_token};{_proxyTokenValue!.Replace(", ", "=").Replace('[', ' ').Replace(']', ' ').Trim()}");
-			HttpResponseMessage response = await client.SendAsync(request);
+			content.Headers.Add("Cookie", $"authentik_csrf={_token};{_proxyTokenValue!.Replace(", ", "=").Replace('[', ' ').Replace(']', ' ').Trim()}");
+			HttpResponseMessage response = await client.PostAsync(requestUrl, content);
 
 			InfoText.Text = response.IsSuccessStatusCode ? "Key synced successfully." : $"Failed to sync key. Status: {response.StatusCode}";
 		}
@@ -185,7 +188,7 @@ public partial class MainWindow : Window
 		
 		using (HttpClient client = new HttpClient())
 		{
-			string requestUrl = $"https://{evuDomainText.Text}.server.autotf.de/sync/keys/validate/?serialNumber={device.SerialNumber}&code={code}&timestamp={timestamp.ToString("yyyy-MM-ddTHH:mm:ss")}";
+			string requestUrl = $"https://{evuDomainText.Text}.server.autotf.de/sync/keys/validate?serialNumber={device.SerialNumber}&code={code}&timestamp={timestamp.ToString("yyyy-MM-ddTHH:mm:ss")}";
 
 			HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, requestUrl);
 
