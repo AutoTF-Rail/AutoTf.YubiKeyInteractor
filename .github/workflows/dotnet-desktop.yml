@@ -27,7 +27,7 @@ jobs:
     runs-on: windows-latest  
 
     env:
-      Solution_Name: AutoTf.YubiKeyInteractor
+      Solution_Name: AutoTf.YubiKeyInteractor.sln
 
     steps:
     - name: Checkout
@@ -47,7 +47,7 @@ jobs:
       run: dotnet publish --configuration Release --output ./publish
 
     - name: Upload Artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ${{ runner.os }}-app
         path: ./publish/**/*
@@ -57,7 +57,7 @@ jobs:
       runs-on: ubuntu-latest
       steps:
       - name: Download Artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
   
       - name: Create Release
         id: create_release
